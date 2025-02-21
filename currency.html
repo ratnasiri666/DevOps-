@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Currency Converter</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9)), url('background.avif');
+            background-size: cover;
+            background-position: center;
+        }
+        .card {
+            max-width: 500px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            color: white;
+        }
+        h2 {
+            color: #00ccff;
+            font-weight: bold;
+        }
+        label {
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .btn-custom {
+            background: linear-gradient(45deg, #00ccff, #003366);
+            border: none;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-custom:hover {
+            background: linear-gradient(45deg, #003366, #00ccff);
+        }
+        #result {
+            color: #00ff99;
+            font-weight: bold;
+        }
+        #status {
+            font-size: 14px;
+            text-align: center;
+            color: #00ccff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 class="text-center mb-4">Currency Converter</h2>
+        <div class="row">
+            <div class="col-md-5">
+                <label>Amount</label>
+                <input type="number" id="amount" class="form-control" placeholder="Enter amount" value="1">
+            </div>
+            <div class="col-md-3">
+                <label>From</label>
+                <select id="fromCurrency" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+                <label>To</label>
+                <select id="toCurrency" class="form-select"></select>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <button class="btn btn-custom w-100" onclick="convertCurrency()">Convert</button>
+        </div>
+        <h3 class="text-center mt-3" id="result"></h3>
+        <p id="status"></p>
+    </div>
+
+<script>
+    const apiKey = "de44b296f7ca403caa4fda0e";
+    const apiUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`;
+    const currencyList = ["USD", "INR", "EUR", "GBP", "JPY", "CAD", "AUD", "CNY", "SGD", "CHF", "MYR", "THB", "ZAR", "NZD", "HKD", "KRW", "MXN", "BRL", "PHP", "IDR"];
+
+    async function fetchRates() {
+        try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            localStorage.setItem("exchangeRates", JSON.stringify(data.conversion_rates));
+            localStorage.setItem("lastUpdated", new Date().toISOString());
+            document.getElementById("status").innerHTML = "Rates updated (Online ✅)";
+            return data.conversion_rates;
+        } catch (error) {
+            document.getElementById("status").innerHTML = "Using offline rates (Offline ⚠️)";
+            return JSON.parse(localStorage.getItem("exchangeRates")) || {};
+        }
+    }
+
+    function populateCurrencyDropdowns() {
+        const fromDropdown = document.getElementById("fromCurrency");
+        const toDropdown = document.getElementById("toCurrency");
+
+        currencyList.forEach(currency => {
+            let option1 = new Option(currency, currency);
+            let option2 = new Option(currency, currency);
+            fromDropdown.add(option1);
+            toDropdown.add(option2);
+        });
+
+        fromDropdown.value = "USD";
+        toDropdown.value = "INR";
+    }
+
+    async function convertCurrency() {
+        const amount = document.getElementById("amount").value;
+        const fromCurrency = document.getElementById("fromCurrency").value;
+        const toCurrency = document.getElementById("toCurrency").value;
+
+        if (amount <= 0) {
+            alert("Enter a valid amount!");
+            return;
+        }
+
+        const rates = await fetchRates();
+        if (!rates[fromCurrency] || !rates[toCurrency]) {
+            alert("Conversion rates not available!");
+            return;
+        }
+
+        const convertedAmount = (amount / rates[fromCurrency]) * rates[toCurrency];
+        document.getElementById("result").innerHTML = `${amount} ${fromCurrency} = ${convertedAmount.toFixed(2)} ${toCurrency}`;
+    }
+
+    function checkOfflineMode() {
+        const lastUpdated = localStorage.getItem("lastUpdated");
+        if (lastUpdated) {
+            document.getElementById("status").innerHTML = `Using offline rates (Last updated: ${new Date(lastUpdated).toLocaleString()})`;
+        } else {
+            document.getElementById("status").innerHTML = "Rates not available offline!";
+        }
+    }
+
+    populateCurrencyDropdowns();
+    checkOfflineMode();
+</script>
+
+</body>
+</html>
